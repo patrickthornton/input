@@ -1,11 +1,12 @@
 <script lang="ts">
   // Initialize availability arrays for Organizer and Invitee
-  let organizer_availability = Array(7)
+  const organizer_availability = Array(7)
     .fill(false)
     .map(() => Array(24).fill(false)); // 7 days, 24 hours
-  let invitee_availability = Array(7)
+  const invitee_availability = Array(7)
     .fill(false)
     .map(() => Array(24).fill(false)); // 7 days, 24 hours
+  var sharedAvailability: Set<string> = new Set();
 
   // Toggle availability for a specific hour in a specific day for Organizer
   function toggleOrganizerAvailability(day: number, hour: number) {
@@ -24,6 +25,7 @@
     if (!organizer_availability[day][hour]) {
       invitee_availability[day][hour] = false;
     }
+    updateSharedAvailability(day, hour);
   }
 
   // Toggle availability for a specific hour in a specific day for Invitee
@@ -31,6 +33,7 @@
     if (organizer_availability[day][hour]) {
       invitee_availability[day][hour] = !invitee_availability[day][hour];
     }
+    updateSharedAvailability(day, hour);
   }
 
   // Set availability for a specific hour in a specific day for Invitee; used in drag selects
@@ -38,20 +41,25 @@
     if (organizer_availability[day][hour]) {
       invitee_availability[day][hour] = value;
     }
+    updateSharedAvailability(day, hour);
   }
 
-  // Check for overlapping times
-  function getOverlappingTimes() {
-    let overlappingTimes = [];
-    for (let day = 0; day < 7; day++) {
-      for (let hour = 0; hour < 24; hour++) {
-        if (organizer_availability[day][hour]) {
-          overlappingTimes.push({ dayIndex: day, hourIndex: hour });
-        }
-      }
+  // Update shared availability based on organizer and invitee availability
+  function updateSharedAvailability(day: number, hour: number) {
+    function toString(day: number, hour: number) {
+      return `${dayToWord(day)} - ${hour}:00`;
     }
-    return overlappingTimes;
+    if (organizer_availability[day][hour] && invitee_availability[day][hour]) {
+      sharedAvailability.add(toString(day, hour));
+    } else {
+      sharedAvailability.delete(toString(day, hour));
+    }
+    // Trigger Svelte reactivity
+    sharedAvailability = sharedAvailability;
   }
+
+  // Keeps track of whether shared_availability is nonempty
+  $: timesOverlapping = sharedAvailability.size > 0;
 
   // Track mouse state and starting indices for selection
   let isMouseDown = false;
@@ -99,6 +107,26 @@
       }
     }
   }
+
+  // Day number-to-word conversion
+  function dayToWord(day: number) {
+    switch (day) {
+      case 0:
+        return "Sunday";
+      case 1:
+        return "Monday";
+      case 2:
+        return "Tuesday";
+      case 3:
+        return "Wednesday";
+      case 4:
+        return "Thursday";
+      case 5:
+        return "Friday";
+      case 6:
+        return "Saturday";
+    }
+  }
 </script>
 
 <svelte:document
@@ -109,17 +137,13 @@
 
 <div class="calendar-container">
   <div>
-    <h2>Organizer</h2>
+    <h2 class="organizer-title">Organizer</h2>
     <div class="calendar">
-      <div class="header"></div>
       <!-- Empty top-left cell -->
-      <div class="header">Sunday</div>
-      <div class="header">Monday</div>
-      <div class="header">Tuesday</div>
-      <div class="header">Wednesday</div>
-      <div class="header">Thursday</div>
-      <div class="header">Friday</div>
-      <div class="header">Saturday</div>
+      <div class="header"></div>
+      {#each Array(7) as _, day}
+        <div class="header">{dayToWord(day)}</div>
+      {/each}
 
       {#each Array(24) as _, hour}
         <div class="hour-label">{hour}:00</div>
@@ -140,18 +164,13 @@
   <div>
     <h2>Invitee</h2>
     <div class="calendar">
+      {#each Array(7) as _, day}
+        <div class="header">{dayToWord(day)}</div>
+      {/each}
+      <!-- Empty top-right cell -->
       <div class="header"></div>
-      <!-- Empty top-left cell -->
-      <div class="header">Sunday</div>
-      <div class="header">Monday</div>
-      <div class="header">Tuesday</div>
-      <div class="header">Wednesday</div>
-      <div class="header">Thursday</div>
-      <div class="header">Friday</div>
-      <div class="header">Saturday</div>
 
       {#each Array(24) as _, hour}
-        <div class="hour-label">{hour}:00</div>
         {#each Array(7) as _, day}
           <button
             type="button"
@@ -164,19 +183,27 @@
             on:mouseenter={() => handleMouseEnter(day, hour, false)}
           ></button>
         {/each}
+        <div class="hour-label-invitee">{hour}:00</div>
       {/each}
     </div>
   </div>
 </div>
 
-{#if getOverlappingTimes().length > 0}
+<div class="overlapping-times">
   <h3>Overlapping Times:</h3>
-  <ul>
-    {#each getOverlappingTimes() as { dayIndex, hourIndex }}
-      <li>{dayIndex} - {hourIndex}</li>
-    {/each}
-  </ul>
-{/if}
+  {#if !timesOverlapping}
+    <p>
+      No overlapping times! Add availabilities above if possible for your
+      schedule.
+    </p>
+  {:else}
+    <ul>
+      {#each sharedAvailability as time}
+        <li>{time}</li>
+      {/each}
+    </ul>
+  {/if}
+</div>
 
 <style>
   .calendar-container {
@@ -194,6 +221,10 @@
     text-align: center;
   }
 
+  .organizer-title {
+    text-align: right;
+  }
+
   .header {
     font-weight: bold;
     background-color: #f4f4f4;
@@ -204,6 +235,12 @@
     text-align: right;
     padding-right: 10px;
     border-right: 1px solid #ddd;
+  }
+
+  .hour-label-invitee {
+    text-align: left;
+    padding-left: 10px;
+    border-left: 1px solid #ddd;
   }
 
   .cell {
@@ -223,5 +260,14 @@
   .unavailable {
     background-color: #ddd;
     cursor: default;
+  }
+
+  .overlapping-times {
+    background-color: #dbdbdb;
+    width: 30%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 25px;
+    padding: 5px;
   }
 </style>
