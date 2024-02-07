@@ -1,38 +1,19 @@
-# create-svelte
+# Project: Input - WIP
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
+i'm deliberately throwing together a number of new technologies for me; this is developed in *svelte* and *typescript* (just javascript with extra syntax for type declarations), and managed and run with *bun*.
 
-## Creating a project
+i'm using *bun*, but *npm* works just as well, i think; just sub `npm` for `bun` in the following lines.
 
-If you're seeing this, you've probably already done this step. Congrats!
-
+install bun:
 ```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
+brew tap oven-sh/bun
+brew install bun
 ```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
+install dependencies:
 ```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+bun install
 ```
-
-## Building
-
-To create a production version of your app:
-
+run:
 ```bash
-npm run build
+bun run dev
 ```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
