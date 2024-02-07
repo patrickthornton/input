@@ -1,91 +1,102 @@
 <script lang="ts">
   // Initialize availability arrays for Organizer and Invitee
-  let availability1 = Array(7)
+  let organizer_availability = Array(7)
     .fill(false)
     .map(() => Array(24).fill(false)); // 7 days, 24 hours
-  let availability2 = Array(7)
+  let invitee_availability = Array(7)
     .fill(false)
     .map(() => Array(24).fill(false)); // 7 days, 24 hours
-  let selectedSlots = Array(7)
-    .fill(false)
-    .map(() => Array(24).fill(false)); // 7 days, 24 hours
-
-  // Track mouse state and starting indices for selection
-  let isMouseDown = false;
-  let startDayIndex: number = 0;
-  let startHourIndex: number = 0;
 
   // Toggle availability for a specific hour in a specific day for Organizer
-  function toggleAvailability1(dayIndex: number, hourIndex: number) {
-    availability1[dayIndex][hourIndex] = !availability1[dayIndex][hourIndex];
-    if (!availability1[dayIndex][hourIndex]) {
-      selectedSlots[dayIndex][hourIndex] = false;
-    }
-    updateAvailability2(dayIndex, hourIndex);
+  function toggleOrganizerAvailability(day: number, hour: number) {
+    organizer_availability[day][hour] = !organizer_availability[day][hour];
+    updateInviteeAvailability(day, hour);
   }
 
-  // Update availability for Invitee based on Organizer
-  function updateAvailability2(dayIndex: number, hourIndex: number) {
-    if (availability1[dayIndex][hourIndex]) {
-      availability2[dayIndex][hourIndex] = true;
-    } else {
-      availability2[dayIndex][hourIndex] = false;
-      selectedSlots[dayIndex][hourIndex] = false;
+  // Set availability for a specific hour in a specific day for Organizer; used in drag selects
+  function setOrganizerAvailability(day: number, hour: number, value: boolean) {
+    organizer_availability[day][hour] = value;
+    updateInviteeAvailability(day, hour);
+  }
+
+  // Update invitee availability based on organizer availability
+  function updateInviteeAvailability(day: number, hour: number) {
+    if (!organizer_availability[day][hour]) {
+      invitee_availability[day][hour] = false;
     }
   }
 
   // Toggle availability for a specific hour in a specific day for Invitee
-  function toggleAvailability2(dayIndex: number, hourIndex: number) {
-    if (availability2[dayIndex][hourIndex]) {
-      selectedSlots[dayIndex][hourIndex] = !selectedSlots[dayIndex][hourIndex];
+  function toggleInviteeAvailability(day: number, hour: number) {
+    if (organizer_availability[day][hour]) {
+      invitee_availability[day][hour] = !invitee_availability[day][hour];
+    }
+  }
+
+  // Set availability for a specific hour in a specific day for Invitee; used in drag selects
+  function setInviteeAvailability(day: number, hour: number, value: boolean) {
+    if (organizer_availability[day][hour]) {
+      invitee_availability[day][hour] = value;
     }
   }
 
   // Check for overlapping times
   function getOverlappingTimes() {
     let overlappingTimes = [];
-    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-      for (let hourIndex = 0; hourIndex < 24; hourIndex++) {
-        if (
-          availability1[dayIndex][hourIndex] &&
-          availability2[dayIndex][hourIndex]
-        ) {
-          overlappingTimes.push({ dayIndex, hourIndex });
+    for (let day = 0; day < 7; day++) {
+      for (let hour = 0; hour < 24; hour++) {
+        if (organizer_availability[day][hour]) {
+          overlappingTimes.push({ dayIndex: day, hourIndex: hour });
         }
       }
     }
     return overlappingTimes;
   }
 
+  // Track mouse state and starting indices for selection
+  let isMouseDown = false;
+  let lastToggle = false;
+  let startDay = 0;
+  let startHour = 0;
+
+  // This bit of code has been adapted from https://stackoverflow.com/questions/322378/javascript-check-if-mouse-button-down
+  // Tracks whether left mouse button is clicked; see bindings on svelte:document below
+  function updateIsMouseDown(event: MouseEvent) {
+    isMouseDown = (event.buttons & 1) === 1;
+  }
+
   // Handle mouse down event
-  function handleMouseDown(dayIndex: number, hourIndex: number) {
-    isMouseDown = true;
-    startDayIndex = dayIndex;
-    startHourIndex = hourIndex;
-    toggleAvailability1(dayIndex, hourIndex);
+  function handleMouseDown(day: number, hour: number) {
+    toggleOrganizerAvailability(day, hour);
+    lastToggle = organizer_availability[day][hour];
+    startDay = day;
+    startHour = hour;
   }
 
   // Handle mouse enter event
-  function handleMouseEnter(dayIndex: number, hourIndex: number) {
+  function handleMouseEnter(day: number, hour: number) {
     if (isMouseDown) {
-      // Check if the mouse is moving vertically
-      if (dayIndex !== startDayIndex) {
-        const minDayIndex = Math.min(dayIndex, startDayIndex);
-        const maxDayIndex = Math.max(dayIndex, startDayIndex);
-        for (let i = minDayIndex; i <= maxDayIndex; i++) {
-          toggleAvailability1(i, hourIndex);
+      // Check if the mouse is moving horizontally
+      if (day !== startDay || hour !== startHour) {
+        const minDay = Math.min(day, startDay);
+        const maxDay = Math.max(day, startDay);
+        const minHour = Math.min(hour, startHour);
+        const maxHour = Math.max(hour, startHour);
+        for (let dayIter = minDay; dayIter <= maxDay; dayIter++) {
+          for (let hourIter = minHour; hourIter <= maxHour; hourIter++) {
+            setOrganizerAvailability(dayIter, hourIter, lastToggle);
+          }
         }
       }
     }
   }
-
-  // Handle mouse up event
-  function handleMouseUp() {
-    isMouseDown = false;
-    startDayIndex = 0;
-    startHourIndex = 0;
-  }
 </script>
+
+<svelte:document
+  on:mousedown={updateIsMouseDown}
+  on:mouseover={updateIsMouseDown}
+  on:mouseup={updateIsMouseDown}
+/>
 
 <div class="calendar-container">
   <div>
@@ -106,10 +117,11 @@
         {#each Array(7) as _, day}
           <button
             type="button"
-            class="cell {availability1[day][hour]
+            class="cell {organizer_availability[day][hour]
               ? 'available'
-              : ''} {selectedSlots[day][hour] ? 'selected' : ''}"
-            on:click={() => toggleAvailability1(day, hour)}
+              : ''} {invitee_availability[day][hour] ? 'selected' : ''}"
+            on:mousedown={() => handleMouseDown(day, hour)}
+            on:mouseenter={() => handleMouseEnter(day, hour)}
           ></button>
         {/each}
       {/each}
@@ -134,12 +146,12 @@
         {#each Array(7) as _, day}
           <button
             type="button"
-            class="cell {availability2[day][hour]
-              ? selectedSlots[day][hour]
+            class="cell {organizer_availability[day][hour]
+              ? invitee_availability[day][hour]
                 ? 'selected'
                 : ''
               : 'unavailable'}"
-            on:click={() => toggleAvailability2(day, hour)}
+            on:click={() => toggleInviteeAvailability(day, hour)}
           ></button>
         {/each}
       {/each}
