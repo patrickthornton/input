@@ -1,22 +1,22 @@
-<script>
+<script lang="ts">
   // Initialize availability arrays for Organizer and Invitee
   let availability1 = Array(7)
-    .fill()
+    .fill(false)
     .map(() => Array(24).fill(false)); // 7 days, 24 hours
   let availability2 = Array(7)
-    .fill()
+    .fill(false)
     .map(() => Array(24).fill(false)); // 7 days, 24 hours
   let selectedSlots = Array(7)
-    .fill()
+    .fill(false)
     .map(() => Array(24).fill(false)); // 7 days, 24 hours
 
   // Track mouse state and starting indices for selection
   let isMouseDown = false;
-  let startDayIndex = null;
-  let startHourIndex = null;
+  let startDayIndex: number = 0;
+  let startHourIndex: number = 0;
 
   // Toggle availability for a specific hour in a specific day for Organizer
-  function toggleAvailability1(dayIndex, hourIndex) {
+  function toggleAvailability1(dayIndex: number, hourIndex: number) {
     availability1[dayIndex][hourIndex] = !availability1[dayIndex][hourIndex];
     if (!availability1[dayIndex][hourIndex]) {
       selectedSlots[dayIndex][hourIndex] = false;
@@ -25,7 +25,7 @@
   }
 
   // Update availability for Invitee based on Organizer
-  function updateAvailability2(dayIndex, hourIndex) {
+  function updateAvailability2(dayIndex: number, hourIndex: number) {
     if (availability1[dayIndex][hourIndex]) {
       availability2[dayIndex][hourIndex] = true;
     } else {
@@ -35,7 +35,7 @@
   }
 
   // Toggle availability for a specific hour in a specific day for Invitee
-  function toggleAvailability2(dayIndex, hourIndex) {
+  function toggleAvailability2(dayIndex: number, hourIndex: number) {
     if (availability2[dayIndex][hourIndex]) {
       selectedSlots[dayIndex][hourIndex] = !selectedSlots[dayIndex][hourIndex];
     }
@@ -58,7 +58,7 @@
   }
 
   // Handle mouse down event
-  function handleMouseDown(dayIndex, hourIndex) {
+  function handleMouseDown(dayIndex: number, hourIndex: number) {
     isMouseDown = true;
     startDayIndex = dayIndex;
     startHourIndex = hourIndex;
@@ -66,7 +66,7 @@
   }
 
   // Handle mouse enter event
-  function handleMouseEnter(dayIndex, hourIndex) {
+  function handleMouseEnter(dayIndex: number, hourIndex: number) {
     if (isMouseDown) {
       // Check if the mouse is moving vertically
       if (dayIndex !== startDayIndex) {
@@ -82,8 +82,8 @@
   // Handle mouse up event
   function handleMouseUp() {
     isMouseDown = false;
-    startDayIndex = null;
-    startHourIndex = null;
+    startDayIndex = 0;
+    startHourIndex = 0;
   }
 </script>
 
@@ -104,12 +104,13 @@
       {#each Array(24) as _, hour}
         <div class="hour-label">{hour}:00</div>
         {#each Array(7) as _, day}
-          <div
+          <button
+            type="button"
             class="cell {availability1[day][hour]
               ? 'available'
               : ''} {selectedSlots[day][hour] ? 'selected' : ''}"
             on:click={() => toggleAvailability1(day, hour)}
-          ></div>
+          ></button>
         {/each}
       {/each}
     </div>
@@ -131,14 +132,15 @@
       {#each Array(24) as _, hour}
         <div class="hour-label">{hour}:00</div>
         {#each Array(7) as _, day}
-          <div
+          <button
+            type="button"
             class="cell {availability2[day][hour]
               ? selectedSlots[day][hour]
                 ? 'selected'
                 : ''
               : 'unavailable'}"
             on:click={() => toggleAvailability2(day, hour)}
-          ></div>
+          ></button>
         {/each}
       {/each}
     </div>
@@ -199,9 +201,5 @@
   .unavailable {
     background-color: #ddd;
     cursor: default;
-  }
-
-  .overlapping-time {
-    background-color: #ff8080;
   }
 </style>
