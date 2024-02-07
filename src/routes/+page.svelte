@@ -65,16 +65,21 @@
     isMouseDown = (event.buttons & 1) === 1;
   }
 
-  // Handle mouse down event
-  function handleMouseDown(day: number, hour: number) {
-    toggleOrganizerAvailability(day, hour);
-    lastToggle = organizer_availability[day][hour];
+  // Handle mouse down event for organizer
+  function handleMouseDown(day: number, hour: number, organizer: boolean) {
+    if (organizer) {
+      toggleOrganizerAvailability(day, hour);
+      lastToggle = organizer_availability[day][hour];
+    } else {
+      toggleInviteeAvailability(day, hour);
+      lastToggle = invitee_availability[day][hour];
+    }
     startDay = day;
     startHour = hour;
   }
 
-  // Handle mouse enter event
-  function handleMouseEnter(day: number, hour: number) {
+  // Handle mouse enter event for organizer
+  function handleMouseEnter(day: number, hour: number, organizer: boolean) {
     if (isMouseDown) {
       // Check if the mouse is moving horizontally
       if (day !== startDay || hour !== startHour) {
@@ -84,7 +89,11 @@
         const maxHour = Math.max(hour, startHour);
         for (let dayIter = minDay; dayIter <= maxDay; dayIter++) {
           for (let hourIter = minHour; hourIter <= maxHour; hourIter++) {
-            setOrganizerAvailability(dayIter, hourIter, lastToggle);
+            if (organizer) {
+              setOrganizerAvailability(dayIter, hourIter, lastToggle);
+            } else {
+              setInviteeAvailability(dayIter, hourIter, lastToggle);
+            }
           }
         }
       }
@@ -120,8 +129,8 @@
             class="cell {organizer_availability[day][hour]
               ? 'available'
               : ''} {invitee_availability[day][hour] ? 'selected' : ''}"
-            on:mousedown={() => handleMouseDown(day, hour)}
-            on:mouseenter={() => handleMouseEnter(day, hour)}
+            on:mousedown={() => handleMouseDown(day, hour, true)}
+            on:mouseenter={() => handleMouseEnter(day, hour, true)}
           ></button>
         {/each}
       {/each}
@@ -151,7 +160,8 @@
                 ? 'selected'
                 : ''
               : 'unavailable'}"
-            on:click={() => toggleInviteeAvailability(day, hour)}
+            on:mousedown={() => handleMouseDown(day, hour, false)}
+            on:mouseenter={() => handleMouseEnter(day, hour, false)}
           ></button>
         {/each}
       {/each}
