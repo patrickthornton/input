@@ -1,107 +1,207 @@
-<script lang="ts">
-  // svelte imports
-  import { onMount } from "svelte";
-  import { fade } from "svelte/transition";
+<script>
+  // Initialize availability arrays for Organizer and Invitee
+  let availability1 = Array(7)
+    .fill()
+    .map(() => Array(24).fill(false)); // 7 days, 24 hours
+  let availability2 = Array(7)
+    .fill()
+    .map(() => Array(24).fill(false)); // 7 days, 24 hours
+  let selectedSlots = Array(7)
+    .fill()
+    .map(() => Array(24).fill(false)); // 7 days, 24 hours
 
-  // fullcalendar imports
-  import { Calendar } from "@fullcalendar/core";
-  import interactionPlugin, { Draggable } from "@fullcalendar/interaction";
-  import timeGridPlugin from "@fullcalendar/timegrid";
+  // Track mouse state and starting indices for selection
+  let isMouseDown = false;
+  let startDayIndex = null;
+  let startHourIndex = null;
 
-  // bound to div below; ! tells TS we'll define it later
-  let container_elt!: HTMLElement;
-  let calendar_elt!: HTMLElement;
+  // Toggle availability for a specific hour in a specific day for Organizer
+  function toggleAvailability1(dayIndex, hourIndex) {
+    availability1[dayIndex][hourIndex] = !availability1[dayIndex][hourIndex];
+    if (!availability1[dayIndex][hourIndex]) {
+      selectedSlots[dayIndex][hourIndex] = false;
+    }
+    updateAvailability2(dayIndex, hourIndex);
+  }
 
-  // tracks whether external event has been dragged onto calendar
-  let dragged: boolean = false;
+  // Update availability for Invitee based on Organizer
+  function updateAvailability2(dayIndex, hourIndex) {
+    if (availability1[dayIndex][hourIndex]) {
+      availability2[dayIndex][hourIndex] = true;
+    } else {
+      availability2[dayIndex][hourIndex] = false;
+      selectedSlots[dayIndex][hourIndex] = false;
+    }
+  }
 
-  // have to wait for component to be rendered to DOM before 'calendarEl' is defined
-  // (rough equivalent of DOMContentLoaded in vanilla JS)
-  onMount(() => {
-    // create draggable event
-    new Draggable(container_elt, {
-      itemSelector: ".fc-event",
-      eventData: function (eventEl) {
-        return {
-          title: eventEl.innerText,
-        };
-      },
-    });
+  // Toggle availability for a specific hour in a specific day for Invitee
+  function toggleAvailability2(dayIndex, hourIndex) {
+    if (availability2[dayIndex][hourIndex]) {
+      selectedSlots[dayIndex][hourIndex] = !selectedSlots[dayIndex][hourIndex];
+    }
+  }
 
-    // create calendar
-    let calendar = new Calendar(calendar_elt, {
-      plugins: [timeGridPlugin, interactionPlugin],
+  // Check for overlapping times
+  function getOverlappingTimes() {
+    let overlappingTimes = [];
+    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+      for (let hourIndex = 0; hourIndex < 24; hourIndex++) {
+        if (
+          availability1[dayIndex][hourIndex] &&
+          availability2[dayIndex][hourIndex]
+        ) {
+          overlappingTimes.push({ dayIndex, hourIndex });
+        }
+      }
+    }
+    return overlappingTimes;
+  }
 
-      // config draggability
-      editable: true,
-      droppable: true,
-      drop: function (dropInfo) {
-        dragged = true;
-      },
+  // Handle mouse down event
+  function handleMouseDown(dayIndex, hourIndex) {
+    isMouseDown = true;
+    startDayIndex = dayIndex;
+    startHourIndex = hourIndex;
+    toggleAvailability1(dayIndex, hourIndex);
+  }
 
-      // config view
-      initialView: "timeGridWeek",
-      allDaySlot: false,
+  // Handle mouse enter event
+  function handleMouseEnter(dayIndex, hourIndex) {
+    if (isMouseDown) {
+      // Check if the mouse is moving vertically
+      if (dayIndex !== startDayIndex) {
+        const minDayIndex = Math.min(dayIndex, startDayIndex);
+        const maxDayIndex = Math.max(dayIndex, startDayIndex);
+        for (let i = minDayIndex; i <= maxDayIndex; i++) {
+          toggleAvailability1(i, hourIndex);
+        }
+      }
+    }
+  }
 
-      // config toolbar
-      headerToolbar: {
-        left: "prev,next",
-        center: "title",
-        right: "timeGridWeek,timeGridDay",
-      },
-
-      // keeps calendar the exact size of browser window
-      height: window.innerHeight * 0.7,
-      windowResize: function (view_object) {
-        view_object.view.calendar.setOption("height", window.innerHeight * 0.7);
-      },
-    });
-
-    calendar.render();
-  });
+  // Handle mouse up event
+  function handleMouseUp() {
+    isMouseDown = false;
+    startDayIndex = null;
+    startHourIndex = null;
+  }
 </script>
 
-<div id="page">
-  <div bind:this={container_elt} id="container">
-    {#if !dragged}
-      <p transition:fade={{ duration: 200 }}>
-        <strong>Place the time below:</strong>
-      </p>
+<div class="calendar-container">
+  <div>
+    <h2>Organizer</h2>
+    <div class="calendar">
+      <div class="header"></div>
+      <!-- Empty top-left cell -->
+      <div class="header">Sunday</div>
+      <div class="header">Monday</div>
+      <div class="header">Tuesday</div>
+      <div class="header">Wednesday</div>
+      <div class="header">Thursday</div>
+      <div class="header">Friday</div>
+      <div class="header">Saturday</div>
 
-      <div
-        transition:fade={{ duration: 200 }}
-        class="fc-event fc-h-event fc-daygrid-event fc-daygrid-block-event"
-      >
-        <div class="fc-event-main">Choose your time...</div>
-      </div>
-    {/if}
+      {#each Array(24) as _, hour}
+        <div class="hour-label">{hour}:00</div>
+        {#each Array(7) as _, day}
+          <div
+            class="cell {availability1[day][hour]
+              ? 'available'
+              : ''} {selectedSlots[day][hour] ? 'selected' : ''}"
+            on:click={() => toggleAvailability1(day, hour)}
+          ></div>
+        {/each}
+      {/each}
+    </div>
   </div>
 
-  <div bind:this={calendar_elt} id="calendar" />
+  <div>
+    <h2>Invitee</h2>
+    <div class="calendar">
+      <div class="header"></div>
+      <!-- Empty top-left cell -->
+      <div class="header">Sunday</div>
+      <div class="header">Monday</div>
+      <div class="header">Tuesday</div>
+      <div class="header">Wednesday</div>
+      <div class="header">Thursday</div>
+      <div class="header">Friday</div>
+      <div class="header">Saturday</div>
+
+      {#each Array(24) as _, hour}
+        <div class="hour-label">{hour}:00</div>
+        {#each Array(7) as _, day}
+          <div
+            class="cell {availability2[day][hour]
+              ? selectedSlots[day][hour]
+                ? 'selected'
+                : ''
+              : 'unavailable'}"
+            on:click={() => toggleAvailability2(day, hour)}
+          ></div>
+        {/each}
+      {/each}
+    </div>
+  </div>
 </div>
 
+{#if getOverlappingTimes().length > 0}
+  <h3>Overlapping Times:</h3>
+  <ul>
+    {#each getOverlappingTimes() as { dayIndex, hourIndex }}
+      <li>{dayIndex} - {hourIndex}</li>
+    {/each}
+  </ul>
+{/if}
+
 <style>
-  #page {
-    margin: auto;
-    width: 75%;
-    height: 75%;
-    font-family: helvetica, sans-serif;
-  }
-  #container {
+  .calendar-container {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100px;
-    margin-bottom: 20px;
+    justify-content: space-between;
+    gap: 20px;
   }
-  .fc-event {
-    background-color: #3788d8;
-    color: white;
-    border: none;
-    cursor: pointer;
+
+  .calendar {
+    display: grid;
+    grid-template-columns: repeat(
+      8,
+      1fr
+    ); /* 7 days + 1 column for hour labels */
+    text-align: center;
+  }
+
+  .header {
+    font-weight: bold;
+    background-color: #f4f4f4;
+    padding: 10px;
+  }
+
+  .hour-label {
+    text-align: right;
+    padding-right: 10px;
+    border-right: 1px solid #ddd;
+  }
+
+  .cell {
     padding: 5px;
-    margin: 5px;
-    border-radius: 5px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+  }
+
+  .available {
+    background-color: #fcf87a;
+  }
+
+  .selected {
+    background-color: #a0ffa0;
+  }
+
+  .unavailable {
+    background-color: #ddd;
+    cursor: default;
+  }
+
+  .overlapping-time {
+    background-color: #ff8080;
   }
 </style>
