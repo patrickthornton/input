@@ -12,6 +12,9 @@
     .map((subArray) => subArray.some((elt) => elt))
     .some((elt) => elt);
 
+  // Keeps track of military time setting
+  let military = false;
+
   // Toggle availability for a specific hour in a specific day for Organizer
   function toggleOrganizerAvailability(day: number, hour: number) {
     organizer_availability[day][hour] = !organizer_availability[day][hour];
@@ -92,8 +95,8 @@
     }
   }
 
-  // Day number-to-word conversion
-  function dayToWord(day: number) {
+  // Day number-to-string conversion
+  function dayToString(day: number) {
     switch (day) {
       case 0:
         return "Sunday";
@@ -111,6 +114,28 @@
         return "Saturday";
     }
   }
+
+  // Convert hour to string
+  function hourToString(hour: number, military: boolean) {
+    if (military) {
+      return `${hour}:00`;
+    } else {
+      if (hour === 0) {
+        return "12 am";
+      } else if (hour < 12) {
+        return `${hour} am`;
+      } else if (hour === 12) {
+        return "12 pm";
+      } else {
+        return `${hour - 12} pm`;
+      }
+    }
+  }
+
+  // Handle military time button functionality
+  function militaryButton() {
+    military = !military;
+  }
 </script>
 
 <svelte:document
@@ -126,11 +151,11 @@
       <!-- Empty top-left cell -->
       <div class="header"></div>
       {#each Array(7) as _, day}
-        <div class="header">{dayToWord(day)}</div>
+        <div class="header">{dayToString(day)}</div>
       {/each}
 
       {#each Array(24) as _, hour}
-        <div class="hour-label">{hour}:00</div>
+        <div class="hour-label">{hourToString(hour, military)}</div>
         {#each Array(7) as _, day}
           <button
             type="button"
@@ -145,11 +170,15 @@
     </div>
   </div>
 
+  <button type="button" class="military-button" on:click={militaryButton}>
+    {military ? "Switch to 12-hour" : "Switch to 24-hour"}
+  </button>
+
   <div>
     <h2>Invitee</h2>
     <div class="calendar">
       {#each Array(7) as _, day}
-        <div class="header">{dayToWord(day)}</div>
+        <div class="header">{dayToString(day)}</div>
       {/each}
       <!-- Empty top-right cell -->
       <div class="header"></div>
@@ -167,7 +196,7 @@
             on:mouseenter={() => handleMouseEnter(day, hour, false)}
           ></button>
         {/each}
-        <div class="hour-label-invitee">{hour}:00</div>
+        <div class="hour-label-invitee">{hourToString(hour, military)}</div>
       {/each}
     </div>
   </div>
@@ -180,7 +209,7 @@
       {#each Array(7) as _, day}
         {#each Array(24) as _, hour}
           {#if invitee_availability[day][hour]}
-            <li>{dayToWord(day)} - {hour}:00</li>
+            <li>{dayToString(day)} - {hourToString(hour, military)}</li>
           {/if}
         {/each}
       {/each}
@@ -245,6 +274,11 @@
   .unavailable {
     background-color: #ddd;
     cursor: default;
+  }
+
+  .military-button {
+    max-height: 50px;
+    margin-top: 25px;
   }
 
   .overlapping-times {
