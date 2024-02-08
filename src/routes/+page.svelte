@@ -136,6 +136,16 @@
   function militaryButton() {
     military = !military;
   }
+
+  // Handle reset button functionality
+  function resetButton() {
+    for (let day = 0; day < 7; day++) {
+      for (let hour = 0; hour < 24; hour++) {
+        organizer_availability[day][hour] = false;
+        invitee_availability[day][hour] = false;
+      }
+    }
+  }
 </script>
 
 <svelte:document
@@ -170,9 +180,21 @@
     </div>
   </div>
 
-  <button type="button" class="military-button" on:click={militaryButton}>
-    {military ? "Switch to 12-hour" : "Switch to 24-hour"}
-  </button>
+  <div class="buttons">
+    <button
+      type="button"
+      class="button military-button"
+      on:click={militaryButton}
+    >
+      {military ? "Switch to 12-hour" : "Switch to 24-hour"}
+    </button>
+    <button type="button" class="button relay-button" on:click={militaryButton}>
+      <strong>Relay</strong>
+    </button>
+    <button type="button" class="button reset-button" on:click={resetButton}>
+      Reset
+    </button>
+  </div>
 
   <div>
     <h2>Invitee</h2>
@@ -217,6 +239,10 @@
   {:else}
     <p>No times work yet! Add availabilities above based on your schedule.</p>
   {/if}
+  <p>
+    When finished, hit the <strong>Relay</strong> button to relay your availabilities
+    to the next invitee.
+  </p>
 </div>
 
 <style>
@@ -276,9 +302,19 @@
     cursor: default;
   }
 
-  .military-button {
-    max-height: 50px;
-    margin-top: 25px;
+  .buttons {
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  .button {
+    height: 30px;
+  }
+
+  .relay-button {
+    height: 45px;
   }
 
   .overlapping-times {
