@@ -137,6 +137,27 @@
     military = !military;
   }
 
+  // Calendar titles
+  let leftTitle = "Organizer";
+  let rightTitle = "Invitee 1";
+  let relays = 0;
+
+  // Handle relay button functionality
+  function relayButton() {
+    function updateTitles() {
+      relays += 1;
+      leftTitle = `Invitee ${relays}`;
+      rightTitle = `Invitee ${relays + 1}`;
+    }
+    for (let day = 0; day < 7; day++) {
+      for (let hour = 0; hour < 24; hour++) {
+        organizer_availability[day][hour] = invitee_availability[day][hour];
+        invitee_availability[day][hour] = false;
+      }
+    }
+    updateTitles();
+  }
+
   // Handle reset button functionality
   function resetButton() {
     for (let day = 0; day < 7; day++) {
@@ -145,6 +166,9 @@
         invitee_availability[day][hour] = false;
       }
     }
+    leftTitle = "Organizer";
+    rightTitle = "Invitee 1";
+    relays = 0;
   }
 </script>
 
@@ -156,7 +180,7 @@
 
 <div class="calendar-container">
   <div>
-    <h2 class="organizer-title">Organizer</h2>
+    <h2 class="organizer-title">{leftTitle}</h2>
     <div class="calendar">
       <!-- Empty top-left cell -->
       <div class="header"></div>
@@ -188,7 +212,7 @@
     >
       {military ? "Switch to 12-hour" : "Switch to 24-hour"}
     </button>
-    <button type="button" class="button relay-button" on:click={militaryButton}>
+    <button type="button" class="button relay-button" on:click={relayButton}>
       <strong>Relay</strong>
     </button>
     <button type="button" class="button reset-button" on:click={resetButton}>
@@ -197,7 +221,7 @@
   </div>
 
   <div>
-    <h2>Invitee</h2>
+    <h2 class="invitee-title">{rightTitle}</h2>
     <div class="calendar">
       {#each Array(7) as _, day}
         <div class="header">{dayToString(day)}</div>
@@ -242,6 +266,16 @@
   <p>
     When finished, hit the <strong>Relay</strong> button to relay your availabilities
     to the next invitee.
+  </p>
+</div>
+
+<div class="overlapping-times">
+  <p>
+    Note: you are looking at a demo version of this application that allows you
+    to simulate the behavior of both the organizer and each of the invitees! In
+    practice, each invitee would only see the availabilities of the invitee
+    before them; but we felt it best to allow you to see the full picture for
+    demonstration purposes.
   </p>
 </div>
 
