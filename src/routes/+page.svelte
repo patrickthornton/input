@@ -6,7 +6,11 @@
   const invitee_availability = Array(7)
     .fill(false)
     .map(() => Array(24).fill(false)); // 7 days, 24 hours
-  var sharedAvailability: Set<string> = new Set();
+
+  // Keeps track of whether invitee has any indicated availabilities
+  $: timesWork = invitee_availability
+    .map((subArray) => subArray.some((elt) => elt))
+    .some((elt) => elt);
 
   // Toggle availability for a specific hour in a specific day for Organizer
   function toggleOrganizerAvailability(day: number, hour: number) {
@@ -25,7 +29,6 @@
     if (!organizer_availability[day][hour]) {
       invitee_availability[day][hour] = false;
     }
-    updateSharedAvailability(day, hour);
   }
 
   // Toggle availability for a specific hour in a specific day for Invitee
@@ -33,7 +36,6 @@
     if (organizer_availability[day][hour]) {
       invitee_availability[day][hour] = !invitee_availability[day][hour];
     }
-    updateSharedAvailability(day, hour);
   }
 
   // Set availability for a specific hour in a specific day for Invitee; used in drag selects
@@ -41,25 +43,7 @@
     if (organizer_availability[day][hour]) {
       invitee_availability[day][hour] = value;
     }
-    updateSharedAvailability(day, hour);
   }
-
-  // Update shared availability based on organizer and invitee availability
-  function updateSharedAvailability(day: number, hour: number) {
-    function toString(day: number, hour: number) {
-      return `${dayToWord(day)} - ${hour}:00`;
-    }
-    if (organizer_availability[day][hour] && invitee_availability[day][hour]) {
-      sharedAvailability.add(toString(day, hour));
-    } else {
-      sharedAvailability.delete(toString(day, hour));
-    }
-    // Trigger Svelte reactivity
-    sharedAvailability = sharedAvailability;
-  }
-
-  // Keeps track of whether shared_availability is nonempty
-  $: timesOverlapping = sharedAvailability.size > 0;
 
   // Track mouse state and starting indices for selection
   let isMouseDown = false;
@@ -190,18 +174,19 @@
 </div>
 
 <div class="overlapping-times">
-  <h3>Overlapping Times:</h3>
-  {#if !timesOverlapping}
-    <p>
-      No overlapping times! Add availabilities above if possible for your
-      schedule.
-    </p>
-  {:else}
+  <h3>Times that work:</h3>
+  {#if timesWork}
     <ul>
-      {#each sharedAvailability as time}
-        <li>{time}</li>
+      {#each Array(7) as _, day}
+        {#each Array(24) as _, hour}
+          {#if invitee_availability[day][hour]}
+            <li>{dayToWord(day)} - {hour}:00</li>
+          {/if}
+        {/each}
       {/each}
     </ul>
+  {:else}
+    <p>No times work yet! Add availabilities above based on your schedule.</p>
   {/if}
 </div>
 
