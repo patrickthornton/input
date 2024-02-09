@@ -53,6 +53,8 @@
   let lastToggle = false;
   let startDay = 0;
   let startHour = 0;
+  let lastDay = 0;
+  let lastHour = 0;
 
   // This bit of code has been adapted from https://stackoverflow.com/questions/322378/javascript-check-if-mouse-button-down
   // Tracks whether left mouse button is clicked; see bindings on svelte:document below
@@ -71,27 +73,34 @@
     }
     startDay = day;
     startHour = hour;
+    lastDay = day;
+    lastHour = hour;
   }
 
   // Handle mouse enter event for organizer
   function handleMouseEnter(day: number, hour: number, organizer: boolean) {
-    if (isMouseDown) {
-      // Check if the mouse is moving horizontally
-      if (day !== startDay || hour !== startHour) {
-        const minDay = Math.min(day, startDay);
-        const maxDay = Math.max(day, startDay);
-        const minHour = Math.min(hour, startHour);
-        const maxHour = Math.max(hour, startHour);
-        for (let dayIter = minDay; dayIter <= maxDay; dayIter++) {
-          for (let hourIter = minHour; hourIter <= maxHour; hourIter++) {
-            if (organizer) {
-              setOrganizerAvailability(dayIter, hourIter, lastToggle);
-            } else {
-              setInviteeAvailability(dayIter, hourIter, lastToggle);
-            }
+    function dragSelect(cornerDay: number, cornerHour: number, value: boolean) {
+      const minDay = Math.min(cornerDay, startDay);
+      const maxDay = Math.max(cornerDay, startDay);
+      const minHour = Math.min(cornerHour, startHour);
+      const maxHour = Math.max(cornerHour, startHour);
+      for (let dayIter = minDay; dayIter <= maxDay; dayIter++) {
+        for (let hourIter = minHour; hourIter <= maxHour; hourIter++) {
+          if (organizer) {
+            setOrganizerAvailability(dayIter, hourIter, value);
+          } else {
+            setInviteeAvailability(dayIter, hourIter, value);
           }
         }
       }
+    }
+    if (isMouseDown) {
+      // This first call allows for retractions of drag selects
+      dragSelect(lastDay, lastHour, !lastToggle);
+      // This actually selects the desired boxes
+      dragSelect(day, hour, lastToggle);
+      lastDay = day;
+      lastHour = hour;
     }
   }
 
