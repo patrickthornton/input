@@ -308,8 +308,8 @@
     <p>No times work yet! Add availabilities above based on your schedule.</p>
   {/if}
   <p>
-    When finished, hit the <strong>Relay</strong> button to relay your availabilities
-    to the next invitee.
+    When finished as the invitee, hit the <strong>Relay</strong> button to relay
+    your availabilities to the next invitee.
   </p>
 </div>
 
