@@ -6,6 +6,10 @@
   const invitee_availability = Array(7)
     .fill(false)
     .map(() => Array(24).fill(false)); // 7 days, 24 hours
+  // used for storing state for drag selects
+  const temp_storage = Array(7)
+    .fill(false)
+    .map(() => Array(24).fill(false)); // 7 days, 24 hours
 
   // Keeps track of whether invitee has any indicated availabilities
   $: timesWork = invitee_availability
@@ -65,9 +69,19 @@
   // Handle mouse down event for organizer
   function handleMouseDown(day: number, hour: number, organizer: boolean) {
     if (organizer) {
+      for (let day = 0; day < 7; day++) {
+        for (let hour = 0; hour < 24; hour++) {
+          temp_storage[day][hour] = organizer_availability[day][hour];
+        }
+      }
       toggleOrganizerAvailability(day, hour);
       lastToggle = organizer_availability[day][hour];
     } else {
+      for (let day = 0; day < 7; day++) {
+        for (let hour = 0; hour < 24; hour++) {
+          temp_storage[day][hour] = invitee_availability[day][hour];
+        }
+      }
       toggleInviteeAvailability(day, hour);
       lastToggle = invitee_availability[day][hour];
     }
@@ -79,7 +93,12 @@
 
   // Handle mouse enter event for organizer
   function handleMouseEnter(day: number, hour: number, organizer: boolean) {
-    function dragSelect(cornerDay: number, cornerHour: number, value: boolean) {
+    function dragSelect(
+      cornerDay: number,
+      cornerHour: number,
+      use_temp: boolean = false,
+      value: boolean = true,
+    ) {
       const minDay = Math.min(cornerDay, startDay);
       const maxDay = Math.max(cornerDay, startDay);
       const minHour = Math.min(cornerHour, startHour);
@@ -87,18 +106,34 @@
       for (let dayIter = minDay; dayIter <= maxDay; dayIter++) {
         for (let hourIter = minHour; hourIter <= maxHour; hourIter++) {
           if (organizer) {
-            setOrganizerAvailability(dayIter, hourIter, value);
+            if (use_temp) {
+              setOrganizerAvailability(
+                dayIter,
+                hourIter,
+                temp_storage[dayIter][hourIter],
+              );
+            } else {
+              setOrganizerAvailability(dayIter, hourIter, value);
+            }
           } else {
-            setInviteeAvailability(dayIter, hourIter, value);
+            if (use_temp) {
+              setInviteeAvailability(
+                dayIter,
+                hourIter,
+                temp_storage[dayIter][hourIter],
+              );
+            } else {
+              setInviteeAvailability(dayIter, hourIter, value);
+            }
           }
         }
       }
     }
     if (isMouseDown) {
       // This first call allows for retractions of drag selects
-      dragSelect(lastDay, lastHour, !lastToggle);
+      dragSelect(lastDay, lastHour, true);
       // This actually selects the desired boxes
-      dragSelect(day, hour, lastToggle);
+      dragSelect(day, hour, false, lastToggle);
       lastDay = day;
       lastHour = hour;
     }
